@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Rehacomp Demo</string>
 
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
+    <string name="address_title">Select address</string>
+    <string name="address1">Protopopovskiy lane., 9</string>
+    <string name="address2">Prospekt Mira metro station (radial)</string>
 </resources>

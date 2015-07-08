@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Rehacomp Demo</string>
+
+    <string name="address_title">Выберите адрес</string>
+    <string name="address1">Протопоповский пер., 9</string>
+    <string name="address2">Станция метро Проспект мира (радиальная)</string>
+</resources>
