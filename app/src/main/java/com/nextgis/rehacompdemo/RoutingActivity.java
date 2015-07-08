@@ -1,39 +1,47 @@
 package com.nextgis.rehacompdemo;
 
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentStatePagerAdapter;
-import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.view.accessibility.AccessibilityEvent;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
 
 public class RoutingActivity extends AppCompatActivity {
-    private ViewPager mPager;
-    private StepPagerAdapter mPagerAdapter;
+    private ListView mSteps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_routing);
 
-        mPager = (ViewPager) findViewById(R.id.vp_steps);
-        mPagerAdapter = new StepPagerAdapter(getSupportFragmentManager());
-        mPager.setAdapter(mPagerAdapter);
-    }
+        final String[] addresses = new String[] {
+                getString(R.string.address1),
+                getString(R.string.address2)
+        };
 
-    private class StepPagerAdapter extends FragmentStatePagerAdapter {
-        public StepPagerAdapter(FragmentManager fm) {
-            super(fm);
-        }
+        mSteps = (ListView) findViewById(R.id.lv_steps);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_selectable_list_item, addresses);
+        mSteps.setAdapter(adapter);
 
-        @Override
-        public Fragment getItem(int position) {
-            return new StepFragment().setData(position);
-        }
+        mSteps.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+            }
+        });
 
-        @Override
-        public int getCount() {
-            return 2;
-        }
+        mSteps.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
     }
 }
