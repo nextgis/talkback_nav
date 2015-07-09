@@ -23,14 +23,16 @@ public class MainActivity extends AppCompatActivity {
         };
 
         ListView lvAddresses = (ListView)findViewById(R.id.lv_addresses);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_selectable_list_item, addresses);
+        final ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.item_step, addresses);
         lvAddresses.setAdapter(adapter);
 
         lvAddresses.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED);
-                Intent routingActivity = new Intent(MainActivity.this, RoutingActivity.class).putExtra(Constants.BUNDLE_ROUTE, position);
+                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
+                Intent routingActivity = new Intent(MainActivity.this, RoutingActivity.class);
+                routingActivity.putExtra(Constants.BUNDLE_ROUTE_ID, position);
+                routingActivity.putExtra(Constants.BUNDLE_ROUTE_NAME, adapter.getItem(position));
                 startActivity(routingActivity);
             }
         });
