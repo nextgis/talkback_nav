@@ -1,0 +1,6 @@
+[submodule "android_maplib"]
+	path = android_maplib
+	url = https://github.com/nextgis/android_maplib
+[submodule "android_maplibui"]
+	path = android_maplibui
+	url = https://github.com/nextgis/android_maplibui
