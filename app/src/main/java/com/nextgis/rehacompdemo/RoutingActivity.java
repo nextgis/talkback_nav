@@ -26,7 +26,8 @@ import com.nextgis.maplib.map.VectorLayer;
 import com.nextgis.maplib.util.GeoConstants;
 import com.nextgis.maplib.util.VectorCacheItem;
 import com.nextgis.maplibui.GISApplication;
-import com.nextgis.maplibui.mapui.MapView;
+import com.nextgis.maplibui.mapui.MapViewOverlays;
+import com.nextgis.maplibui.overlay.CurrentLocationOverlay;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -45,7 +46,8 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     private ListView mSteps;
     private String mRoute, mPoints;
     private MapDrawable mMap;
-    private MapView mMapView;
+    private MapViewOverlays mMapView;
+    private CurrentLocationOverlay mCurrentLocationOverlay;
     private LocationManager mLocationManager;
 
     @Override
@@ -85,6 +87,22 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
 
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5, 3, this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        if (mCurrentLocationOverlay != null)
+            mCurrentLocationOverlay.stopShowingCurrentLocation();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        if (mCurrentLocationOverlay != null)
+            mCurrentLocationOverlay.startShowingCurrentLocation();
     }
 
     private void initializeMap() {
@@ -270,7 +288,12 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
 
-            mMapView = new MapView(RoutingActivity.this, mMap);
+            mMapView = new MapViewOverlays(RoutingActivity.this, mMap);
+            mCurrentLocationOverlay = new CurrentLocationOverlay(RoutingActivity.this, mMapView);
+            mCurrentLocationOverlay.setStandingMarker(R.drawable.ic_location_standing);
+            mCurrentLocationOverlay.setMovingMarker(R.drawable.ic_location_moving);
+            mCurrentLocationOverlay.startShowingCurrentLocation();
+            mMapView.addOverlay(mCurrentLocationOverlay);
 
             ((FrameLayout) findViewById(R.id.fl_map)).addView(mMapView, 0, new FrameLayout.LayoutParams(
                     RelativeLayout.LayoutParams.MATCH_PARENT,
