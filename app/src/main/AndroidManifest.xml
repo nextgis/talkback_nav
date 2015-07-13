@@ -28,7 +28,13 @@
 
         <activity
             android:name=".RoutingActivity"
-            android:screenOrientation="portrait"/>
+            android:parentActivityName="com.nextgis.rehacompdemo.MainActivity"
+            android:screenOrientation="portrait">
+            <!-- The meta-data element is needed for versions lower than 4.1 -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.nextgis.rehacompdemo.MainActivity"/>
+        </activity>
     </application>
 
 </manifest>
