@@ -56,6 +56,11 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.nextgis.rehacompdemo.MainActivity"/>
         </activity>
+
+        <activity
+            android:name=".PreferenceActivity"
+            android:label="@string/action_settings">
+        </activity>
     </application>
 
 </manifest>

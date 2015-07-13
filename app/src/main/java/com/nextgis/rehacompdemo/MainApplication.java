@@ -21,6 +21,7 @@
 
 package com.nextgis.rehacompdemo;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -42,8 +43,7 @@ import static com.nextgis.maplib.util.SettingsConstants.KEY_PREF_MAP;
 
 public class MainApplication extends GISApplication {
     @Override
-    public MapBase getMap()
-    {
+    public MapBase getMap() {
         if (null != mMap) {
             return mMap;
         }
@@ -67,22 +67,19 @@ public class MainApplication extends GISApplication {
     }
 
     @Override
-    public String getAuthority()
-    {
+    public String getAuthority() {
         return Constants.AUTHORITY;
     }
 
     @Override
-    public void showSettings()
-    {
-//        Intent intentSet = new Intent(this, SettingsActivity.class);
-//        intentSet.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//        startActivity(intentSet);
+    public void showSettings() {
+        Intent intentSet = new Intent(this, PreferenceActivity.class);
+        intentSet.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intentSet);
     }
 
     @Override
-    protected void onFirstRun()
-    {
+    protected void onFirstRun() {
         //add OpenStreetMap layer on application first run
         String layerName = getString(R.string.osm);
         String layerURL = getString(R.string.osm_url);

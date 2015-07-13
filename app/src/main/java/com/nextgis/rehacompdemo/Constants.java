@@ -29,5 +29,5 @@ public interface Constants {
     String BUNDLE_ROUTE_ID = "route";
     String BUNDLE_ROUTE_NAME = "route_name";
 
-    int POINT_RADIUS = 6;
+    String PREF_RADIUS = "location_radius";
 }

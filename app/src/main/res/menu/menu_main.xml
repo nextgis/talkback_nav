@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Project:  RehacompDemo
   ~ Purpose:  Routing for the blind using TalkBack and TTS.
@@ -19,12 +20,13 @@
   ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
-<resources>
-    <string name="app_name">Rehacomp Demo</string>
-
-    <string name="address_title">Выберите адрес</string>
-    <string name="address1">Протопоповский пер., 9</string>
-    <string name="address2">Станция метро Проспект мира (радиальная)</string>
-
-  <string name="pref_location_title">Радиус геопозиционирования</string>
-</resources>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto"
+      xmlns:tools="http://schemas.android.com/tools"
+      tools:context=".MainActivity">
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:title="@string/action_settings"
+        app:showAsAction="never"/>
+</menu>

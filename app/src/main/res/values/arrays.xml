@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
   ~ Project:  RehacompDemo
   ~ Purpose:  Routing for the blind using TalkBack and TTS.
@@ -20,11 +21,18 @@
   -->
 
 <resources>
-    <string name="app_name">Rehacomp Demo</string>
-
-    <string name="address_title">Выберите адрес</string>
-    <string name="address1">Протопоповский пер., 9</string>
-    <string name="address2">Станция метро Проспект мира (радиальная)</string>
-
-  <string name="pref_location_title">Радиус геопозиционирования</string>
+    <string-array name="location_radius_val">
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+        <item>6</item>
+        <item>10</item>
+    </string-array>
+    <string-array name="location_radius">
+        <item>3m</item>
+        <item>4m</item>
+        <item>5m</item>
+        <item>6m</item>
+        <item>10m</item>
+    </string-array>
 </resources>

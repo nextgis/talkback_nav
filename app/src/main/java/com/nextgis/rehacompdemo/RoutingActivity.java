@@ -29,6 +29,7 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.View;
@@ -70,11 +71,15 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     private MapViewOverlays mMapView;
     private CurrentLocationOverlay mCurrentLocationOverlay;
     private LocationManager mLocationManager;
+    private int mRadius;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_routing);
+
+        String sRadius = PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREF_RADIUS, "5");
+        mRadius = Integer.parseInt(sRadius);
 
         int routeNum = -1;
         Bundle extras = getIntent().getExtras();
@@ -222,7 +227,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
             nextLocation.setLongitude(nextPoint.getX());
             nextLocation.setLatitude(nextPoint.getY());
 
-            if (currentLocation.distanceTo(nextLocation) <= Constants.POINT_RADIUS) {
+            if (currentLocation.distanceTo(nextLocation) <= mRadius) {
                 data = allPoints.query(new String[]{Constants.POINT_ID}, FIELD_ID + " = ?", new String[]{point.getId() + ""}, null);
 
                 if (data.moveToFirst()) {
