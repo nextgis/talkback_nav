@@ -44,7 +44,9 @@ public class MainActivity extends AppCompatActivity {
 
         final String[] addresses = new String[] {
                 getString(R.string.address1),
-                getString(R.string.address2)
+                getString(R.string.address2),
+                getString(R.string.address3),
+                getString(R.string.address4)
         };
 
         ListView lvAddresses = (ListView)findViewById(R.id.lv_addresses);

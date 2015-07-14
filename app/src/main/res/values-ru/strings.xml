@@ -23,8 +23,10 @@
     <string name="app_name">Rehacomp Demo</string>
 
     <string name="address_title">Выберите адрес</string>
-    <string name="address1">Протопоповский пер., 9</string>
-    <string name="address2">Станция метро Проспект мира (радиальная)</string>
+    <string name="address1">Протопоповский пер., 9 (короткий)</string>
+    <string name="address2">Протопоповский пер., 9 (длинный)</string>
+    <string name="address3">Станция метро Проспект мира (радиальная) (короткий)</string>
+    <string name="address4">Станция метро Проспект мира (радиальная) (длинный)</string>
 
   <string name="pref_location_title">Радиус геопозиционирования</string>
 </resources>

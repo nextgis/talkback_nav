@@ -23,7 +23,7 @@
                   android:title="@string/action_settings">
 
     <ListPreference
-        android:defaultValue="5"
+        android:defaultValue="6"
         android:entries="@array/location_radius"
         android:entryValues="@array/location_radius_val"
         android:key="location_radius"
