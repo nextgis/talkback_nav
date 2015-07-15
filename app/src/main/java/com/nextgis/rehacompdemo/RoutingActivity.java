@@ -78,7 +78,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_routing);
 
-        String sRadius = PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREF_RADIUS, "5");
+        String sRadius = PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREF_RADIUS, "6");
         mRadius = Integer.parseInt(sRadius);
 
         int routeNum = -1;

@@ -23,8 +23,10 @@
     <string name="app_name">Rehacomp Demo</string>
 
     <string name="address_title">Select address</string>
-    <string name="address1">Protopopovskiy lane., 9</string>
-    <string name="address2">Prospekt Mira metro station (radial)</string>
+    <string name="address1">Protopopovskiy lane., 9 (short)</string>
+    <string name="address2">Protopopovskiy lane., 9 (long)</string>
+    <string name="address3">Prospekt Mira metro station (radial) (short)</string>
+    <string name="address4">Prospekt Mira metro station (radial) (long)</string>
 
     <string name="pref_location_title">Geolocation radius</string>
 </resources>
