@@ -30,10 +30,13 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.accessibility.AccessibilityEvent;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
@@ -100,11 +103,14 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         mSteps = (ListView) findViewById(R.id.lv_steps);
         mAdapter = new StepAdapter(this, R.layout.item_step, getRouteSteps());
         mSteps.setAdapter(mAdapter);
+        mSteps.setChoiceMode(AbsListView.CHOICE_MODE_SINGLE);
 
         mSteps.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
+//                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
+                mSteps.requestFocusFromTouch();
+                mSteps.setSelection(position);
             }
         });
 
@@ -173,7 +179,48 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     }
 
     @Override
-    public boolean dispatchPopulateAccessibilityEvent(AccessibilityEvent event) {
+    public boolean dispatchPopulateAccessibilityEvent(@NonNull AccessibilityEvent event) {
+        return true;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+        int position;
+
+        int action = event.getAction();
+        int keyCode = event.getKeyCode();
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    position = mSteps.getSelectedItemPosition();
+                    if (position == AdapterView.INVALID_POSITION)
+                        position = 0;
+                    else
+                        position--;
+
+                    mSteps.requestFocusFromTouch();
+                    mSteps.setSelection(position);
+                    break;
+                } else
+                    return true;
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    position = mSteps.getSelectedItemPosition();
+                    if (position == AdapterView.INVALID_POSITION)
+                        position = 0;
+                    else
+                        position++;
+
+                    mSteps.requestFocusFromTouch();
+                    mSteps.setSelection(position);
+                    break;
+                } else
+                    return true;
+            default:
+                return super.dispatchKeyEvent(event);
+        }
+
         return true;
     }
 
@@ -228,13 +275,14 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
             nextLocation.setLatitude(nextPoint.getY());
 
             if (currentLocation.distanceTo(nextLocation) <= mRadius) {
-                data = allPoints.query(new String[]{Constants.POINT_ID}, FIELD_ID + " = ?", new String[]{point.getId() + ""}, null);
+                data = allPoints.query(new String[]{Constants.POINT_ID}, FIELD_ID + " = ?", new String[]{point.getId() + ""}, null, null);
 
                 if (data.moveToFirst()) {
                     int id = data.getInt(0);
                     id = mAdapter.getItemPosition(id);
 
                     if (id != -1) {
+                        mSteps.requestFocusFromTouch();
                         mSteps.setSelection(id);
                         return;
                     }

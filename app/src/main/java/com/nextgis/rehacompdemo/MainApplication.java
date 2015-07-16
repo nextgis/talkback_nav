@@ -82,7 +82,7 @@ public class MainApplication extends GISApplication {
     protected void onFirstRun() {
         //add OpenStreetMap layer on application first run
         String layerName = getString(R.string.osm);
-        String layerURL = getString(R.string.osm_url);
+        String layerURL = SettingsConstantsUI.OSM_URL;
         RemoteTMSLayerUI layer = new RemoteTMSLayerUI(getApplicationContext(), mMap.createLayerStorage());
         layer.setName(layerName);
         layer.setURL(layerURL);
