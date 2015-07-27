@@ -118,7 +118,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         new MapLoader().execute();
 
         mLocationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5, 3, this);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Constants.GPS_MIN_TIME, Constants.GPS_MIN_DIST, this);
     }
 
     @Override

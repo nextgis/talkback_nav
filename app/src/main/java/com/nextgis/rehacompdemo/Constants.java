@@ -30,4 +30,6 @@ public interface Constants {
     String BUNDLE_ROUTE_NAME = "route_name";
 
     String PREF_RADIUS = "location_radius";
+    int GPS_MIN_TIME = 1;
+    int GPS_MIN_DIST = 0;
 }
