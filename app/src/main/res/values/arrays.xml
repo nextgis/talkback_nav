@@ -26,13 +26,19 @@
         <item>4</item>
         <item>5</item>
         <item>6</item>
+        <item>8</item>
         <item>10</item>
+        <item>12</item>
+        <item>15</item>
     </string-array>
     <string-array name="location_radius">
         <item>3m</item>
         <item>4m</item>
         <item>5m</item>
         <item>6m</item>
+        <item>8m</item>
         <item>10m</item>
+        <item>12m</item>
+        <item>15m</item>
     </string-array>
 </resources>

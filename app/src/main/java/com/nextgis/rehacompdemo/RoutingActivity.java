@@ -22,7 +22,6 @@
 package com.nextgis.rehacompdemo;
 
 import android.content.Context;
-import android.database.Cursor;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -60,11 +59,12 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static com.nextgis.maplib.util.Constants.FIELD_ID;
 
 public class RoutingActivity extends AppCompatActivity implements LocationListener {
     private StepAdapter mAdapter;
@@ -74,7 +74,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     private MapViewOverlays mMapView;
     private CurrentLocationOverlay mCurrentLocationOverlay;
     private LocationManager mLocationManager;
-    private int mRadius;
+    private int mActivationDistance, mLastPassedStep;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,7 +82,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         setContentView(R.layout.activity_routing);
 
         String sRadius = PreferenceManager.getDefaultSharedPreferences(this).getString(Constants.PREF_RADIUS, "6");
-        mRadius = Integer.parseInt(sRadius);
+        mActivationDistance = Integer.parseInt(sRadius);
 
         int routeNum = -1;
         Bundle extras = getIntent().getExtras();
@@ -111,6 +111,18 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
 //                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
                 mSteps.requestFocusFromTouch();
                 mSteps.setSelection(position);
+            }
+        });
+
+        mSteps.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                mLastPassedStep = position;
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
             }
         });
 
@@ -224,8 +236,8 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         return true;
     }
 
-    private TreeMap<Integer, String> getRouteSteps() {
-        TreeMap<Integer, String> steps = new TreeMap<>();
+    private TreeMap<Long, String> getRouteSteps() {
+        TreeMap<Long, String> steps = new TreeMap<>();
 
         try {
             JSONObject jsonObj = new JSONObject(getGeoJSON(mPoints));
@@ -234,7 +246,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
 
             for (int i = 0; i < jsonStepsArray.length(); i++) {
                 jsonStep = jsonStepsArray.getJSONObject(i).getJSONObject("properties");
-                steps.put(jsonStep.getInt("id"), jsonStep.getString("instr"));
+                steps.put(jsonStepsArray.getJSONObject(i).getLong("id"), jsonStep.getString("instr"));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -250,6 +262,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
             InputStream is = getAssets().open(name + ".geojson");
             int size = is.available();
             byte[] buffer = new byte[size];
+            //noinspection ResultOfMethodCallIgnored
             is.read(buffer);
             is.close();
             json = new String(buffer, "UTF-8");
@@ -261,33 +274,87 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         return json;
     }
 
+    // Thanks StackOverflow!
+    // http://stackoverflow.com/questions/1459368/snap-point-to-a-line-java
+    public static Location snapToLine(Location pointA, Location pointB, Location pointP, boolean clampToSegment) {
+        Location projection = new Location(LocationManager.GPS_PROVIDER);
+
+        double ax = pointA.getLatitude();
+        double ay = pointA.getLongitude();
+        double bx = pointB.getLatitude();
+        double by = pointB.getLongitude();
+
+        // no line, locations are similar
+        if (ax == bx && ay == by)
+            return pointP;
+
+        double px = pointP.getLatitude();
+        double py = pointP.getLongitude();
+
+        double apx = px - ax;
+        double apy = py - ay;
+        double abx = bx - ax;
+        double aby = by - ay;
+
+        double ab2 = abx * abx + aby * aby;
+        double ap_ab = apx * abx + apy * aby;
+        double t = ap_ab / ab2;
+
+        if (clampToSegment) {
+            if (t < 0) {
+                t = 0;
+            } else if (t > 1) {
+                t = 1;
+            }
+        }
+
+        projection.setLatitude(ax + abx * t);
+        projection.setLongitude(ay + aby * t);
+
+        return projection;
+    }
+
     @Override
     public void onLocationChanged(Location currentLocation) {
-        GeoPoint nextPoint;
-        VectorLayer allPoints = (VectorLayer) mMap.getLayerByName(mPoints);
+        GeoPoint point;
         Location nextLocation = new Location(LocationManager.GPS_PROVIDER);
-        Cursor data;
+        Location previousLocation = new Location(LocationManager.GPS_PROVIDER);
+        final VectorLayer allPointsLayer = (VectorLayer) mMap.getLayerByName(mPoints);
 
-        for (VectorCacheItem point : allPoints.getVectorCache()) {
-            nextPoint = (GeoPoint) point.getGeoGeometry().copy();
-            nextPoint.project(GeoConstants.CRS_WGS84);
-            nextLocation.setLongitude(nextPoint.getX());
-            nextLocation.setLatitude(nextPoint.getY());
+        List<VectorCacheItem> allPoints = allPointsLayer.getVectorCache();
+        Collections.sort(allPoints, new Comparator<VectorCacheItem>() {
+            @Override
+            public int compare(VectorCacheItem v1, VectorCacheItem v2) {
+                return Long.valueOf(v1.getId()).compareTo(v2.getId());
+            }
+        });
 
-            if (currentLocation.distanceTo(nextLocation) <= mRadius) {
-                data = allPoints.query(new String[]{Constants.POINT_ID}, FIELD_ID + " = ?", new String[]{point.getId() + ""}, null, null);
+        for (int i = 0; i < allPoints.size() - 1; i++) {
+            long id = allPoints.get(i + 1).getId();
+            int position = mAdapter.getItemPosition(id);
 
-                if (data.moveToFirst()) {
-                    int id = data.getInt(0);
-                    id = mAdapter.getItemPosition(id);
+            if (mLastPassedStep >= position)
+                continue;
 
-                    if (id != -1) {
-                        mSteps.requestFocusFromTouch();
-                        mSteps.setSelection(id);
-                        return;
-                    }
+            point = (GeoPoint) allPoints.get(i).getGeoGeometry().copy();
+            point.project(GeoConstants.CRS_WGS84);
+            previousLocation.setLongitude(point.getX());
+            previousLocation.setLatitude(point.getY());
+            point = (GeoPoint) allPoints.get(i + 1).getGeoGeometry().copy();
+            point.project(GeoConstants.CRS_WGS84);
+            nextLocation.setLongitude(point.getX());
+            nextLocation.setLatitude(point.getY());
+
+            float dist = snapToLine(previousLocation, nextLocation, currentLocation, false).distanceTo(nextLocation);
+            if (dist <= mActivationDistance) {
+                if (position != -1) {
+                    mSteps.requestFocusFromTouch();
+                    mSteps.setSelection(position);
+                    return;
                 }
             }
+
+            break;
         }
     }
 
@@ -307,18 +374,18 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     }
 
     public class StepAdapter extends ArrayAdapter<String> {
-        private Map<Integer, Integer> mData;
+        private Map<Long, Integer> mData;
 
-        public StepAdapter(Context context, int resource, Map<Integer, String> data) {
+        public StepAdapter(Context context, int resource, Map<Long, String> data) {
             super(context, resource, data.values().toArray(new String[data.size()]));
 
             mData = new HashMap<>();
             int position = 0;
-            for (Map.Entry<Integer, String> entry : data.entrySet())
+            for (Map.Entry<Long, String> entry : data.entrySet())
                 mData.put(entry.getKey(), position++);
         }
 
-        public int getItemPosition(int id) {
+        public int getItemPosition(long id) {
             Integer result = mData.get(id);
             result = result == null ? -1 : result;
             return result;
