@@ -32,4 +32,6 @@ public interface Constants {
     String PREF_RADIUS = "location_radius";
     int GPS_MIN_TIME = 1;
     int GPS_MIN_DIST = 0;
+
+    int ENVELOPE_SIDE = 300;
 }
