@@ -43,7 +43,9 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 
 import com.nextgis.maplib.api.ILayer;
+import com.nextgis.maplib.datasource.Geo;
 import com.nextgis.maplib.datasource.GeoEnvelope;
+import com.nextgis.maplib.datasource.GeoLineString;
 import com.nextgis.maplib.datasource.GeoPoint;
 import com.nextgis.maplib.map.MapDrawable;
 import com.nextgis.maplib.map.VectorLayer;
@@ -59,6 +61,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -74,7 +77,9 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     private MapViewOverlays mMapView;
     private CurrentLocationOverlay mCurrentLocationOverlay;
     private LocationManager mLocationManager;
-    private int mActivationDistance, mLastPassedStep;
+    private int mActivationDistance;
+    private List<GeoLineString> mRouteSegments;
+    private List<VectorCacheItem> mAllPoints;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,18 +116,6 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
 //                view.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_CLICKED);
                 mSteps.requestFocusFromTouch();
                 mSteps.setSelection(position);
-            }
-        });
-
-        mSteps.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-                mLastPassedStep = position;
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
-
             }
         });
 
@@ -286,7 +279,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
 
         // no line, locations are similar
         if (ax == bx && ay == by)
-            return pointP;
+            return pointA;
 
         double px = pointP.getLatitude();
         double py = pointP.getLongitude();
@@ -314,47 +307,77 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         return projection;
     }
 
+    private double getOffsetLatitude(Location location, double offset) {
+        return location.getLatitude() + (180 / Math.PI) * (offset / 6378137.0);
+    }
+
+    private double getOffsetLongitude(Location location, double offset) {
+        return location.getLongitude() + (180 / Math.PI) * (offset / 6378137.0) / Math.cos(Math.PI / 180 * location.getLatitude());
+    }
+
+    private GeoEnvelope getArea(Location currentLocation) {
+        GeoEnvelope area = new GeoEnvelope();
+        Location offset = new Location(currentLocation);
+
+        offset.setLatitude(getOffsetLatitude(currentLocation, -Constants.ENVELOPE_SIDE));
+        offset.setLongitude(getOffsetLongitude(currentLocation, -Constants.ENVELOPE_SIDE));
+        area.setMin(Geo.wgs84ToMercatorSphereX(offset.getLongitude()), Geo.wgs84ToMercatorSphereY(offset.getLatitude()));
+
+        offset.setLatitude(getOffsetLatitude(currentLocation, Constants.ENVELOPE_SIDE));
+        offset.setLongitude(getOffsetLongitude(currentLocation, Constants.ENVELOPE_SIDE));
+        area.setMax(Geo.wgs84ToMercatorSphereX(offset.getLongitude()), Geo.wgs84ToMercatorSphereY(offset.getLatitude()));
+
+        return area;
+    }
+
     @Override
     public void onLocationChanged(Location currentLocation) {
-        GeoPoint point;
+        GeoEnvelope area = getArea(currentLocation);
         Location nextLocation = new Location(LocationManager.GPS_PROVIDER);
         Location previousLocation = new Location(LocationManager.GPS_PROVIDER);
-        final VectorLayer allPointsLayer = (VectorLayer) mMap.getLayerByName(mPoints);
 
-        List<VectorCacheItem> allPoints = allPointsLayer.getVectorCache();
-        Collections.sort(allPoints, new Comparator<VectorCacheItem>() {
-            @Override
-            public int compare(VectorCacheItem v1, VectorCacheItem v2) {
-                return Long.valueOf(v1.getId()).compareTo(v2.getId());
+        TreeMap<Float, Location> perpendiculars = new TreeMap<>();
+        HashMap<Location, GeoLineString> snapsToSegments = new HashMap<>();
+        for (GeoLineString segment : mRouteSegments)
+            if (area.intersects(segment.getEnvelope()) || area.contains(segment.getEnvelope())) {
+                previousLocation.setLongitude(Geo.mercatorToWgs84SphereX(segment.getPoint(0).getX()));
+                previousLocation.setLatitude(Geo.mercatorToWgs84SphereY(segment.getPoint(0).getY()));
+                nextLocation.setLongitude(Geo.mercatorToWgs84SphereX(segment.getPoint(1).getX()));
+                nextLocation.setLatitude(Geo.mercatorToWgs84SphereY(segment.getPoint(1).getY()));
+                Location snap = snapToLine(previousLocation, nextLocation, currentLocation, false);
+                Float perpendicular = currentLocation.distanceTo(snap);
+                perpendiculars.put(perpendicular, snap);
+                snapsToSegments.put(snap, segment);
             }
-        });
 
-        for (int i = 0; i < allPoints.size() - 1; i++) {
-            long id = allPoints.get(i + 1).getId();
-            int position = mAdapter.getItemPosition(id);
+        if (perpendiculars.size() > 0 && snapsToSegments.size() > 0) {
+            Location snappedLocation = perpendiculars.firstEntry().getValue();
+            GeoLineString segment = snapsToSegments.get(snappedLocation);
+            previousLocation.setLongitude(Geo.mercatorToWgs84SphereX(segment.getPoint(0).getX()));
+            previousLocation.setLatitude(Geo.mercatorToWgs84SphereY(segment.getPoint(0).getY()));
+            nextLocation.setLongitude(Geo.mercatorToWgs84SphereX(segment.getPoint(1).getX()));
+            nextLocation.setLatitude(Geo.mercatorToWgs84SphereY(segment.getPoint(1).getY()));
 
-            if (mLastPassedStep >= position)
-                continue;
+            GeoPoint point = segment.getPoint(1);
+            if (snappedLocation.distanceTo(previousLocation) < snappedLocation.distanceTo(nextLocation)) {
+                point = segment.getPoint(0);
+                nextLocation.setLongitude(previousLocation.getLongitude());
+                nextLocation.setLatitude(previousLocation.getLatitude());
+            }
 
-            point = (GeoPoint) allPoints.get(i).getGeoGeometry().copy();
-            point.project(GeoConstants.CRS_WGS84);
-            previousLocation.setLongitude(point.getX());
-            previousLocation.setLatitude(point.getY());
-            point = (GeoPoint) allPoints.get(i + 1).getGeoGeometry().copy();
-            point.project(GeoConstants.CRS_WGS84);
-            nextLocation.setLongitude(point.getX());
-            nextLocation.setLatitude(point.getY());
+            if (snappedLocation.distanceTo(nextLocation) <= mActivationDistance) {
+                long id = -1;
+                for (VectorCacheItem cachePoint : mAllPoints) {
+                    if (point.equals(cachePoint.getGeoGeometry()))
+                        id = cachePoint.getId();
+                }
 
-            float dist = snapToLine(previousLocation, nextLocation, currentLocation, false).distanceTo(nextLocation);
-            if (dist <= mActivationDistance) {
+                int position = mAdapter.getItemPosition(id);
                 if (position != -1) {
                     mSteps.requestFocusFromTouch();
                     mSteps.setSelection(position);
-                    return;
                 }
             }
-
-            break;
         }
     }
 
@@ -429,6 +452,24 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
 
+            VectorLayer allPointsLayer = (VectorLayer) mMap.getLayerByName(mPoints);
+            mAllPoints = allPointsLayer.getVectorCache();
+            mRouteSegments = new ArrayList<>();
+
+            Collections.sort(mAllPoints, new Comparator<VectorCacheItem>() {
+                @Override
+                public int compare(VectorCacheItem v1, VectorCacheItem v2) {
+                    return Long.valueOf(v1.getId()).compareTo(v2.getId());
+                }
+            });
+
+            for (int i = 0; i < mAllPoints.size() - 1; i++) {
+                GeoLineString segment = new GeoLineString();
+                segment.add((GeoPoint) mAllPoints.get(i).getGeoGeometry());
+                segment.add((GeoPoint) mAllPoints.get(i + 1).getGeoGeometry());
+                mRouteSegments.add(segment);
+            }
+
             mMapView = new MapViewOverlays(RoutingActivity.this, mMap);
             mCurrentLocationOverlay = new CurrentLocationOverlay(RoutingActivity.this, mMapView);
             mCurrentLocationOverlay.setStandingMarker(R.drawable.ic_location_standing);
@@ -445,3 +486,4 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
         }
     }
 }
+
