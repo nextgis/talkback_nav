@@ -42,6 +42,8 @@ import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 
+import com.nextgis.maplib.api.IGeometryCache;
+import com.nextgis.maplib.api.IGeometryCacheItem;
 import com.nextgis.maplib.api.ILayer;
 import com.nextgis.maplib.datasource.Geo;
 import com.nextgis.maplib.datasource.GeoEnvelope;
@@ -50,7 +52,6 @@ import com.nextgis.maplib.datasource.GeoPoint;
 import com.nextgis.maplib.map.MapDrawable;
 import com.nextgis.maplib.map.VectorLayer;
 import com.nextgis.maplib.util.GeoConstants;
-import com.nextgis.maplib.util.VectorCacheItem;
 import com.nextgis.maplibui.GISApplication;
 import com.nextgis.maplibui.mapui.MapViewOverlays;
 import com.nextgis.maplibui.overlay.CurrentLocationOverlay;
@@ -79,7 +80,7 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
     private LocationManager mLocationManager;
     private int mActivationDistance;
     private List<GeoLineString> mRouteSegments;
-    private List<VectorCacheItem> mAllPoints;
+    private List<IGeometryCacheItem> mAllPoints;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -367,9 +368,9 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
 
             if (snappedLocation.distanceTo(nextLocation) <= mActivationDistance) {
                 long id = -1;
-                for (VectorCacheItem cachePoint : mAllPoints) {
-                    if (point.equals(cachePoint.getGeoGeometry()))
-                        id = cachePoint.getId();
+                for (IGeometryCacheItem cachePoint : mAllPoints) {
+                    if (point.equals(cachePoint.getGeometry()))
+                        id = cachePoint.getFeatureId();
                 }
 
                 int position = mAdapter.getItemPosition(id);
@@ -453,20 +454,21 @@ public class RoutingActivity extends AppCompatActivity implements LocationListen
             super.onPostExecute(aVoid);
 
             VectorLayer allPointsLayer = (VectorLayer) mMap.getLayerByName(mPoints);
-            mAllPoints = allPointsLayer.getVectorCache();
+            IGeometryCache pointsCache = allPointsLayer.getGeometryCache();
+            mAllPoints = pointsCache.getAll();
             mRouteSegments = new ArrayList<>();
 
-            Collections.sort(mAllPoints, new Comparator<VectorCacheItem>() {
+            Collections.sort(mAllPoints, new Comparator<IGeometryCacheItem>() {
                 @Override
-                public int compare(VectorCacheItem v1, VectorCacheItem v2) {
-                    return Long.valueOf(v1.getId()).compareTo(v2.getId());
+                public int compare(IGeometryCacheItem v1, IGeometryCacheItem v2) {
+                    return Long.valueOf(v1.getFeatureId()).compareTo(v2.getFeatureId());
                 }
             });
 
             for (int i = 0; i < mAllPoints.size() - 1; i++) {
                 GeoLineString segment = new GeoLineString();
-                segment.add((GeoPoint) mAllPoints.get(i).getGeoGeometry());
-                segment.add((GeoPoint) mAllPoints.get(i + 1).getGeoGeometry());
+                segment.add((GeoPoint) mAllPoints.get(i).getGeometry());
+                segment.add((GeoPoint) mAllPoints.get(i + 1).getGeometry());
                 mRouteSegments.add(segment);
             }
 
